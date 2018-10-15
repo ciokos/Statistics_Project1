@@ -6,7 +6,7 @@
 ## "Session -> Set Working Directory -> To Source File Location" 
 ## Note: In R only "/" is used for separating in paths 
 ## (i.e. no backslash).
-setwd("/Users/wojciechciok/Documents/DTU/Statistics/project1/Statistics_Project1")
+setwd("")
 
 ###########################################################################
 ## Read data into R
@@ -120,6 +120,7 @@ for(i in 0:1){
   Tbl[i+2, "Median"] <- median(D$bmi[D$gender == i])
   Tbl[i+2, "Upper quartile"] <- quantile(D$bmi[D$gender == i], 0.75)
 }
+#It's kinda ugly I know
 
 row.names(Tbl) <- c("Everyone", "Women","Men")
 xtable(Tbl, align = "p{1.5cm}p{1.5cm}p{1.5cm}p{1.5cm}p{1.5cm}p{1.5cm}p{1.5cm}p{1.5cm}")
@@ -164,72 +165,63 @@ pvalue
 t.test(D$logbmi, mu=log(25))
 
 ###########################################################################
+## Q-Q plot for women
+women <- subset(D, gender == 0)$logbmi
+qqnorm(women)
+qqline(women)
+## Q-Q plot for men
+men <- subset(D, gender == 1)$logbmi
+qqnorm(men)
+qqline(men)
+
+##means and sds
+mean(women)
+mean(men)
+sd(women)
+sd(men)
+
 ## CI's for the mean and median
 
-## Consider data for women only
-Dfemale <- subset(D, gender == 0)
-## Compute CI for mean log-BMI score of a woman
-KI <- t.test(Dfemale$logbmi, conf.level=0.95)$conf.int
-KI
-## "Back-transform" to get a CI for median BMI score of a woman
-exp(KI)
+## Compute CI for mean log-BMI score
+women_conf <- t.test(women, conf.level=0.95)$conf.int
+men_conf <- t.test(men, conf.level=0.95)$conf.int
+
+## "Back-transform" to get a CI for median BMI score
+exp(women_conf)
+exp(men_conf)
 
 ###########################################################################
 ## Welch t-test for comparing two (independent) samples
-
+mw <- mean(women)
+mm <- mean(men)
+sw <- sd(women)
+sm <- sd(men)
+tobs <- (mw-mm)/(sqrt(sw*sw/72+sm*sm/73))
+tobs
+s1 <- sw*sw
+s2 <- sm*sm
+n1 <-length(women)
+n2 <- length(men)
+num <- (s1/n1+s2/n2)*(s1/n1+s2/n2)
+den <- (s1/n1)*(s1/n1)/(n1-1) + (s2/n2)*(s2/n2)/(n2-1)
+v <- num/den
+v
+pvalue <- 2*(1-pt(abs(tobs), df=v))
+pvalue
 ## Comparison of mean logBMI for women and men
 t.test(D$logbmi[D$gender == 0], D$logbmi[D$gender == 1])
 
 ###########################################################################
 ## Computing correlations
+bmi <- D$bmi
+weight <- D$weight
+fastfood <- D$fastfood
+cor(bmi, weight)
+cor(bmi, fastfood)
+cor(weight, fastfood)
+plot(bmi, weight, xlab = "bmi", ylab = "weight")
+plot(bmi, fastfood, xlab = "bmi", ylab = "fastfood")
+plot(weight, fastfood, xlab = "weight", ylab = "fastfood")
 
 ## Computing correlations between selected variables
 cor(D[,c("weight","fastfood","bmi")], use="pairwise.complete.obs")
-
-###########################################################################
-## Subsets in R
-  
-## Optional extra remark about taking subsets in R
-##
-## A logical vector with a TRUE or FALSE for each value 
-## of a column in D, e.g.: Find all women in the data
-D$gender == 0
-## Can be used to find all the data for women
-D[D$gender == 0, ]
-## Alternatively, use the 'subset' function
-subset(D, gender == 0)
-## More complex logical expressions can be made, e.g.:
-## Find all women who weigh less than 55 kg
-subset(D, gender == 0 & weight < 55)
-
-###########################################################################
-## More R tips
-
-## Use a 'for'-loop to calculate the summary statistics
-## and assign the result to a new data.frame
-Tbl <- data.frame()
-for(i in 0:1){
-  Tbl[i+1, "mean"] <- mean(D$bmi[D$gender == i])
-  Tbl[i+1, "var"] <- var(D$bmi[D$gender == i])
-}
-row.names(Tbl) <- c("Women","Men")
-## View the contents of Tbl
-Tbl
-
-## In R there are also more condensed ways to do such calculations.
-## For example,
-aggregate(D$bmi, by=list(D$gender), function(x){ 
-  c(mean=mean(x), var=var(x)) 
-})
-## See more useful functions with: ?apply, ?aggregate and ?lapply
-## For extremely efficient data handling see, e.g., the packages: 
-## dplyr, tidyr, reshape2 and ggplot2
-
-## LaTeX tips:
-##
-## The R package "xtable" can generate LaTeX tables written to a file 
-## and thereby they can automatically be included in a .tex document.
-## 
-## The R package "knitr" can be used very elegantly to generate .tex 
-## documents with R code written directly in the document. This 
-## document and the book were generated using knitr.
